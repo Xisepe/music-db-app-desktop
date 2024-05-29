@@ -25,4 +25,11 @@ class HttpClientProviderImpl : HttpClientProvider {
 
     }
     override fun getClient(): HttpClient = client
+    override fun provideAuth(cookie: Cookie) {
+        client.config {
+            headers {
+                set("Cookie", cookie.value)
+            }
+        }
+    }
 }

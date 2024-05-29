@@ -13,23 +13,31 @@ import model.request.RegisterRequest
 import model.response.MessageResponse
 import model.response.UserInfoResponse
 import service.AuthService
+import service.HttpClientProvider
 
 class AuthServiceImpl(
-    private val client: HttpClient
+    private val clientProvider: HttpClientProvider
 ) : AuthService {
     override fun register(request: RegisterRequest): Flow<AsyncResult<MessageResponse>> = flow {
-        val response = client.post("/api/auth/register") {
+        val response = clientProvider.getClient().post("/api/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }
         emit(response.body<MessageResponse>())
     }.asAsyncResult()
 
+    private fun provideCookie(cookie: Cookie) {
+        clientProvider.provideAuth(cookie)
+    }
+
     override fun login(request: LoginRequest): Flow<AsyncResult<UserInfoResponse>> = flow {
-        val response = client.post("/auth/login") {
+        val response = clientProvider.getClient().post("/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }
+        val cookie = response.setCookie()
+            .first { it.name == "key" }
+        provideCookie(cookie)
         emit(response.body<UserInfoResponse>())
     }.asAsyncResult()
 }

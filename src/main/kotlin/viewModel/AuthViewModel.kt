@@ -29,7 +29,6 @@ class AuthViewModel(
     fun login(email: String, password: String) {
         viewModelScope.launch {
             authService.login(LoginRequest(email, password))
-//                .flowOn(Dispatchers.Default)
                 .collect {
                     _userInfo.value = it
                 }
@@ -40,7 +39,6 @@ class AuthViewModel(
     fun register(username: String, email: String, password: String) {
         viewModelScope.launch {
             authService.register(RegisterRequest(email, username, password))
-//                .flowOn(Dispatchers.Default)
                 .collect {
                     _registerResult.value = it
                 }
