@@ -31,7 +31,7 @@ class AuthServiceImpl(
     }
 
     override fun login(request: LoginRequest): Flow<AsyncResult<UserInfoResponse>> = flow {
-        val response = clientProvider.getClient().post("/auth/login") {
+        val response = clientProvider.getClient().post("/api/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }

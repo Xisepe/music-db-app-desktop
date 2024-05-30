@@ -1,31 +1,38 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
 
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import screen.RegisterScreen
-import screen.Screens
+import model.response.ErrorResponse
+import screen.AsyncResultHandler
+import screen.auth.RegisterScreen
+import screen.AuthNav
 import screen.auth.LoginScreen
 import service.AuthService
 import service.HttpClientProvider
@@ -61,9 +68,21 @@ fun BottomNavigationBar(
                 label = { item.label },
                 onClick = {
                     navController.navigate(item.route) {
-                        popUpTo(navController.graph.startDestinationRoute!!)
+//                        popUpTo(navController.graph.startDestinationRoute!!)
+//                        launchSingleTop = true
+                        // Pop up to the start destination of the graph to
+                        // avoid building up a large stack of destinations
+                        // on the back stack as users select items
+                        popUpTo(navController.graph.findStartDestination().navigatorName) {
+                            saveState = true
+                        }
+                        // Avoid multiple copies of the same destination when
+                        // reselecting the same item
                         launchSingleTop = true
+                        // Restore state when reselecting a previously selected item
+                        restoreState = true
                     }
+
                 }
             )
         }
@@ -88,16 +107,21 @@ fun App(
     ) {
         NavHost(
             navController = navController,
-            startDestination = if (!authViewModel.isAuthenticated.value) Screens.Login.route else BottomNavItem.Home.route
+            startDestination = if (!authViewModel.isAuthenticated.value) AuthNav.Login.route else BottomNavItem.Home.route
         ) {
-            composable(Screens.Login.route) {
+            composable(AuthNav.Login.route) {
                 LoginScreen(navController, authViewModel)
             }
-            composable(Screens.Register.route) {
+            composable(AuthNav.Register.route) {
                 RegisterScreen(navController, authViewModel)
             }
             composable(BottomNavItem.Home.route) {
-                Text("Hello, world!")
+                AsyncResultHandler(
+                    authViewModel.userInfo.value,
+                    onError = { BackErrorHandler(navController, it) }
+                ) {
+                    Text(it.toString())
+                }
             }
             composable(BottomNavItem.Playlists.route) {
 
@@ -108,6 +132,23 @@ fun App(
             composable(BottomNavItem.Search.route) {
 
             }
+        }
+    }
+}
+
+@Composable
+@ExperimentalMaterial3Api
+private fun BackErrorHandler(navController: NavHostController, error: ErrorResponse) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = error.msg,
+            modifier = Modifier.padding(16.dp),
+            textAlign = TextAlign.Center
+        )
+        TextButton(onClick = {
+            navController.navigateUp()
+        }, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Back")
         }
     }
 }

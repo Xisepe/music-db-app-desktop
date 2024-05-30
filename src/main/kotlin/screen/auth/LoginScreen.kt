@@ -1,5 +1,6 @@
 package screen.auth
 
+import BottomNavItem
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -8,15 +9,19 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
+import screen.AuthNav
 import viewModel.AuthViewModel
 
 @Composable
 fun LoginScreen(navController: NavHostController, authViewModel: AuthViewModel) {
+    val focusManager = LocalFocusManager.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var emailError by remember { mutableStateOf<String?>(null) }
@@ -35,10 +40,11 @@ fun LoginScreen(navController: NavHostController, authViewModel: AuthViewModel) 
                 imeAction = ImeAction.Next
             ),
             keyboardActions = KeyboardActions(onNext = {
-                if (email.isNotEmpty()) {
-                    emailError = null
+                emailError = if (authViewModel.isValidEmail(email)) {
+                    focusManager.moveFocus(FocusDirection.Down)
+                    null
                 } else {
-                    emailError = "Invalid email"
+                    "Invalid email"
                 }
             })
         )
@@ -58,10 +64,10 @@ fun LoginScreen(navController: NavHostController, authViewModel: AuthViewModel) 
                 imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(onDone = {
-                if (password.isNotEmpty()) {
-                    passwordError = null
+                passwordError = if (authViewModel.isValidPassword(password)) {
+                    null
                 } else {
-                    passwordError = "Password cannot be empty"
+                    "Password length at least 6, at most 32"
                 }
             })
         )
@@ -70,21 +76,22 @@ fun LoginScreen(navController: NavHostController, authViewModel: AuthViewModel) 
         }
 
         Button(onClick = {
-            if (email.isEmpty()) {
-                emailError = "Invalid email"
+            emailError = if (authViewModel.isValidEmail(email)) {
+                null
             } else {
-                emailError = null
+                "Invalid email"
             }
 
-            if (password.isEmpty()) {
-                passwordError = "Password cannot be empty"
+            passwordError = if (authViewModel.isValidPassword(password)) {
+                null
             } else {
-                passwordError = null
+                "Password length at least 6, at most 32"
             }
 
             if (emailError == null && passwordError == null) {
                 scope.launch {
                     authViewModel.login(email, password)
+                    navController.navigate(BottomNavItem.Home.route)
                 }
             }
         }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
@@ -92,7 +99,7 @@ fun LoginScreen(navController: NavHostController, authViewModel: AuthViewModel) 
         }
 
         TextButton(onClick = {
-            navController.navigate("register")
+            navController.navigate(AuthNav.Register.route)
         }, modifier = Modifier.padding(top = 8.dp)) {
             Text("Don't have an account? Register")
         }

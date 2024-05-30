@@ -1,5 +1,6 @@
-package screen
+package screen.auth
 
+import BottomNavItem
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,12 +10,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mail
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -28,9 +28,12 @@ fun RegisterScreen(
     navController: NavHostController,
     authViewModel: AuthViewModel
 ) {
+    val focusManager = LocalFocusManager.current
+
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
     var usernameError by remember { mutableStateOf<String?>(null) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
@@ -48,10 +51,11 @@ fun RegisterScreen(
                 imeAction = ImeAction.Next
             ),
             keyboardActions = KeyboardActions(onNext = {
-                if (username.isNotEmpty()) {
-                    usernameError = null
+                usernameError = if (authViewModel.isValidUsername(username)) {
+                    focusManager.moveFocus(FocusDirection.Down)
+                    null
                 } else {
-                    usernameError = "Username cannot be empty"
+                    "Username has to be in lowercase. Allowed only letters and digits. Username length should be under 64 symbols"
                 }
             })
         )
@@ -70,13 +74,14 @@ fun RegisterScreen(
                 imeAction = ImeAction.Next
             ),
             keyboardActions = KeyboardActions(onNext = {
-                if (email.isNotEmpty()) {
-                    emailError = null
+                emailError = if (authViewModel.isValidEmail(email)) {
+                    focusManager.moveFocus(FocusDirection.Down)
+                    null
                 } else {
-                    emailError = "Invalid email"
+                    "Invalid email"
                 }
             }),
-            leadingIcon = {Icons.Default.Mail}
+            leadingIcon = { Icons.Default.Mail }
         )
         if (emailError != null) {
             Text(emailError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -94,45 +99,48 @@ fun RegisterScreen(
                 imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(onDone = {
-                if (password.isNotEmpty()) {
-                    passwordError = null
+                passwordError = if (authViewModel.isValidPassword(password)) {
+                    null
                 } else {
-                    passwordError = "Password cannot be empty"
+                    "Password length at least 6, at most 32"
                 }
             }),
-            leadingIcon = {Icons.Default.Lock}
+            leadingIcon = { Icons.Default.Lock }
         )
         if (passwordError != null) {
             Text(passwordError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
 
         Button(onClick = {
-            if (username.isEmpty()) {
-                usernameError = "Username cannot be empty"
+            usernameError = if (authViewModel.isValidUsername(username)) {
+                null
             } else {
-                usernameError = null
+                "Username has to be in lowercase. Allowed only letters and digits. Username length should be under 64 symbols"
             }
 
-            if (email.isEmpty()) {
-                emailError = "Invalid email"
+            emailError = if (authViewModel.isValidEmail(email)) {
+                null
             } else {
-                emailError = null
+                "Invalid email"
             }
 
-            if (password.isEmpty()) {
-                passwordError = "Password cannot be empty"
+            passwordError = if (authViewModel.isValidPassword(password)) {
+                null
             } else {
-                passwordError = null
+                "Password length at least 6, at most 32"
             }
 
             if (usernameError == null && emailError == null && passwordError == null) {
                 scope.launch {
                     authViewModel.register(username, email, password)
-                    navController.navigate("home")
+                    navController.navigate(BottomNavItem.Home.route)
                 }
             }
         }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Text("Register")
+        }
+        TextButton(onClick = { navController.navigateUp() }, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Already have an account? Login")
         }
     }
 }

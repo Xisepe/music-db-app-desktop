@@ -22,13 +22,13 @@ class HttpClientProviderImpl : HttpClientProvider {
                 protocol = URLProtocol.HTTP
             }
         }
-
+        expectSuccess = true
     }
     override fun getClient(): HttpClient = client
     override fun provideAuth(cookie: Cookie) {
         client.config {
             headers {
-                set("Cookie", cookie.value)
+                set("Cookie", "${cookie.name}=${cookie.value}")
             }
         }
     }

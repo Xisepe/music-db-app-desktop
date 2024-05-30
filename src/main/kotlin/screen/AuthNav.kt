@@ -1,6 +1,6 @@
 package screen
 
-enum class Screens(val route: String) {
+enum class AuthNav(val route: String) {
     Register("register"),
     Login("login")
 }
